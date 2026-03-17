@@ -1,0 +1,49 @@
+REPLICATION
+Master: 192.168.1.10 Read and Write
+Replica: 192.168.1.20 Read Only
+
+On Master edit config
+/etc/mysql/my.cnf
+
+[mysqld]
+server-id=1
+log_bin=mysql-bin
+
+And restart mysql
+
+Now create replica user on Master
+CREATE USER 'replica'@'%' IDENTIFIED BY ‘pass@123’;
+GRANT REPLICATION SLAVE ON . TO 'replica'@'%';
+FLUSH PRIVILEGES;
+
+In mysql run this 
+SHOW MASTER STATUS; //to get log position to put in connection query
+
+Now export database 
+mysqldump -u root -p --all-databases --master-data > dump.sql
+
+Import it on replication database 
+mysql -u root -p < dump.sql
+
+On Slave  edit config
+/etc/mysql/my.cnf
+
+server-id=2
+
+Restart mysql
+
+On Replica server in my sql connect master 
+
+CHANGE MASTER TO
+MASTER_HOST='192.168.1.10',
+MASTER_USER='replica',
+MASTER_PASSWORD='pass@123',
+MASTER_LOG_FILE='mysql-bin.000001',
+MASTER_LOG_POS=157;
+
+And run this to start slave copying data from master
+START SLAVE;
+
+SHOW SLAVE STATUS\G; // to check status
+Slave_IO_Running: Yes
+Slave_SQL_Running: Yes
